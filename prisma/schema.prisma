@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  relationMode = "prisma"
+}
+
+enum UserRole {
+  BUYER_ADMIN
+  BUYER_MEMBER
+  OPS_ADMIN
+  SUPER_ADMIN
+}
+
+enum OrganizationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  NEEDS_INFORMATION
+  REJECTED
+  SUSPENDED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+enum ConsentType {
+  TERMS_ACCEPTANCE
+  PRIVACY_CONSENT
+  MARKETING_CONSENT
+}
+
+enum AuditAction {
+  SIGN_IN
+  SIGN_UP
+  SIGN_OUT
+  ORGANIZATION_CREATED
+  ORGANIZATION_UPDATED
+  ORGANIZATION_SUBMITTED
+  ORGANIZATION_APPROVED
+  ORGANIZATION_REJECTED
+  ORGANIZATION_SUSPENDED
+  ORGANIZATION_NEEDS_INFO
+  TEAM_INVITATION_SENT
+  TEAM_INVITATION_ACCEPTED
+  TEAM_INVITATION_REVOKED
+  TEAM_MEMBER_REMOVED
+  MEMBER_ROLE_CHANGED
+  PROFILE_UPDATED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+}
+
+model User {
+  id             String   @id
+  email          String   @unique
+  firstName      String?
+  lastName       String?
+  jobTitle       String?
+  phone          String?
+  avatarUrl      String?
+  globalRole     UserRole @default(BUYER_MEMBER)
+  isInternal     Boolean  @default(false)
+  emailVerified  Boolean  @default(false)
+  lastLoginAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  memberships    OrganizationMember[]
+  createdOrgs    Organization[]      @relation("OrgCreator")
+  auditEvents    AuditEvent[]        @relation("AuditActor")
+  sentInvitations Invitation[]      @relation("Inviter")
+  consentRecords ConsentRecord[]
+
+  @@map("users")
+}
+
+model Organization {
+  id                   String             @id @default(cuid())
+  legalName            String
+  operatingName        String?
+  website              String?
+  businessType         String?
+  province             String?
+  city                 String?
+  address              String?
+  postalCode           String?
+  yearEstablished      Int?
+  numberOfLocations    Int?
+  status               OrganizationStatus @default(DRAFT)
+  submittedAt          DateTime?
+  reviewedAt           DateTime?
+  reviewedByUserId     String?
+  rejectionReason      String?
+  internalNotes        String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  createdByUserId      String
+  createdBy            User               @relation("OrgCreator", fields: [createdByUserId], references: [id])
+  reviewedBy           User?              @relation("OrgReviewer", fields: [reviewedByUserId], references: [id])
+  members              OrganizationMember[]
+  buyerProfile         BuyerProfile?
+  addresses            OrganizationAddress[]
+  auditEvents          AuditEvent[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           UserRole @default(BUYER_MEMBER)
+  joinedAt       DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
+model BuyerProfile {
+  id                        String   @id @default(cuid())
+  organizationId            String   @unique
+  roastingInHouse           Boolean?
+  roastingCapacityKgMonth   Float?
+  annualGreenCoffeeKg       Float?
+  currentOrigins            String?
+  mainCoffeeUses            String?
+  typicalOrderSizeKg        Float?
+  preferredMinOrderKg       Float?
+  importExperience          String?
+  certificationsRequired    String?
+  notes                     String?
+  targetPriceMinCadKg       Float?
+  targetPriceMaxCadKg       Float?
+  preferredSpecies           String?
+  preferredProcessingMethods String?
+  preferredFlavourProfiles  String?
+  preferredOrigins          String?
+  sampleInterest            Boolean  @default(true)
+  groupOrderInterest        Boolean  @default(false)
+  targetPurchasingTimeline  String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("buyer_profiles")
+}
+
+model OrganizationAddress {
+  id             String  @id @default(cuid())
+  organizationId String
+  label          String
+  street         String?
+  city           String?
+  province       String?
+  postalCode     String?
+  country        String  @default("Canada")
+  isDefault      Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("organization_addresses")
+}
+
+model Invitation {
+  id              String           @id @default(cuid())
+  organizationId  String
+  email           String
+  role            UserRole         @default(BUYER_MEMBER)
+  status          InvitationStatus @default(PENDING)
+  invitedByUserId String
+  acceptedAt      DateTime?
+  expiresAt       DateTime
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  invitedBy      User              @relation("Inviter", fields: [invitedByUserId], references: [id])
+
+  @@map("invitations")
+}
+
+model ConsentRecord {
+  id        String      @id @default(cuid())
+  userId    String
+  type      ConsentType
+  consented Boolean     @default(true)
+  ip        String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, type])
+  @@map("consent_records")
+}
+
+model AuditEvent {
+  id          String      @id @default(cuid())
+  action      AuditAction
+  actorUserId String?
+  targetType  String?
+  targetId    String?
+  details     String?
+  ip          String?
+  userAgent  String?
+  createdAt   DateTime    @default(now())
+
+  actorUser    User?          @relation("AuditActor", fields: [actorUserId], references: [id])
+  organization Organization? @relation(fields: [targetId], references: [id])
+
+  @@index([action])
+  @@index([actorUserId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_events")
+}
