@@ -14,6 +14,7 @@ import {
   Building2,
   User,
   Settings,
+  Sprout,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -23,9 +24,16 @@ interface SidebarProps {
     firstName: string;
     lastName: string;
   };
+  role?: string | null;
 }
 
-export function DashboardSidebar({ user }: SidebarProps) {
+function isBuyerRole(role?: string | null): boolean {
+  return role === "BUYER_ADMIN" || role === "BUYER_MEMBER";
+}
+
+export function DashboardSidebar({ user, role }: SidebarProps) {
+  const showGrowerNetwork = isBuyerRole(role);
+
   return (
     <aside className="flex flex-col h-full bg-white border-r border-[rgba(21,21,19,.12)]">
       {/* Branding */}
@@ -59,6 +67,9 @@ export function DashboardSidebar({ user }: SidebarProps) {
             Sourcing
           </span>
         </div>
+        {showGrowerNetwork && (
+          <NavItem label="Grower Network" href="/dashboard/growers" icon={Sprout} />
+        )}
         <NavItem label="Sourcing Projects" href="/dashboard" icon={FolderOpen} disabled />
         <NavItem label="RFQs" href="/dashboard" icon={FileText} disabled />
         <NavItem label="Samples" href="/dashboard" icon={Package} disabled />

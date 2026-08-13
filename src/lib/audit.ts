@@ -6,6 +6,7 @@ interface LogAuditParams {
   action: AuditAction;
   actorUserId?: string;
   organizationId?: string;
+  growerId?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -13,6 +14,7 @@ export async function logAudit({
   action,
   actorUserId,
   organizationId,
+  growerId,
   metadata,
 }: LogAuditParams) {
   const headersList = await headers();
@@ -24,6 +26,7 @@ export async function logAudit({
       action,
       actorUserId,
       organizationId,
+      growerId,
       metadata: metadata ? JSON.stringify(metadata) : null,
       ipAddress: ip,
       userAgent: ua,

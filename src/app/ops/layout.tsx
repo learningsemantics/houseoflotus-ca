@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, ArrowLeft } from 'lucide-react';
+import { Building2, ArrowLeft, Sprout } from 'lucide-react';
 
 interface SessionUser {
   id: string;
@@ -63,6 +63,17 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           <span className="text-sm font-semibold text-gray-900 tracking-wide">HOL Ops</span>
         </div>
         <nav className="flex-1 py-4 px-3 space-y-1">
+          <Link
+            href="/ops/growers"
+            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              pathname.startsWith('/ops/growers')
+                ? 'bg-gray-100 text-gray-900'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+          >
+            <Sprout className="h-4 w-4" />
+            Grower Network
+          </Link>
           <Link
             href="/ops/buyers"
             className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${

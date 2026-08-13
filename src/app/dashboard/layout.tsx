@@ -27,6 +27,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/team": "Team",
   "/dashboard/profile": "Profile",
   "/dashboard/settings": "Settings",
+  "/dashboard/growers": "Grower Network",
+  "/dashboard/growers/[id]": "Grower Profile",
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -88,7 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
       <div className="hidden md:block w-64 flex-shrink-0">
-        <DashboardSidebar user={user} />
+        <DashboardSidebar user={user} role={user.organization?.role} />
       </div>
 
       {/* Mobile sidebar (Sheet) — key resets closed state on route change */}
@@ -99,7 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         <SheetContent side="left" className="w-64 p-0">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <DashboardSidebar user={user} />
+          <DashboardSidebar user={user} role={user.organization?.role} />
         </SheetContent>
       </Sheet>
 

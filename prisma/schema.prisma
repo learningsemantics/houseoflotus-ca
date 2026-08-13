@@ -10,7 +10,7 @@ datasource db {
 }
 
 // ═══════════════════════════════════════════
-// ENUMS
+// ENUMS — Mission 4A
 // ═══════════════════════════════════════════
 
 enum UserRole {
@@ -42,7 +42,194 @@ enum ConsentType {
   MARKETING_CONSENT
 }
 
+// ═══════════════════════════════════════════
+// ENUMS — Mission 4B: Grower Network
+// ═══════════════════════════════════════════
+
+enum GrowerRelationshipStatus {
+  DISCOVERED
+  IDENTIFIED
+  CONTACTED
+  RESPONDED
+  INTERESTED
+  INFORMATION_REQUESTED
+  APPLICATION_STARTED
+  APPLICATION_RECEIVED
+  UNDER_VERIFICATION
+  VERIFIED
+  SAMPLE_REQUESTED
+  SAMPLE_RECEIVED
+  CUPPING
+  QUALIFIED
+  ACTIVE_GROWER
+  DORMANT
+  REJECTED
+}
+
+enum GrowerType {
+  INDIVIDUAL
+  ESTATE
+  COOPERATIVE
+  PRODUCER_GROUP
+  PROCESSOR
+  EXPORTER
+  GROWER_EXPORTER
+}
+
+enum DataSourceType {
+  COFFEE_BOARD_INDIA
+  GOVERNMENT_DIRECTORY
+  COOPERATIVE
+  ESTATE_WEBSITE
+  INDUSTRY_ASSOCIATION
+  REFERRAL
+  TRADE_EVENT
+  DIRECT_OUTREACH
+  GROWER_APPLICATION
+  EXPORTER
+  FIELD_VISIT
+  OTHER
+}
+
+enum VerificationCategory {
+  IDENTITY
+  LOCATION
+  PRODUCTION
+  COFFEE
+  QUALITY
+  CERTIFICATION
+  EXPORT_READINESS
+  TRACEABILITY
+  COMMERCIAL
+}
+
+enum ClaimStatus {
+  NOT_REVIEWED
+  CLAIMED
+  DOCUMENTED
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+enum OverallVerificationStatus {
+  UNVERIFIED
+  PARTIALLY_VERIFIED
+  VERIFIED
+  VERIFICATION_EXPIRED
+  SUSPENDED
+}
+
+enum GrowerVisibility {
+  INTERNAL_ONLY
+  APPROVED_ROASTERS_ONLY
+  SELECTED_ROASTERS
+  PUBLIC_PROFILE
+}
+
+enum CoffeeSpecies {
+  ARABICA
+  ROBUSTA
+  LIBERICA
+  EXCELSA
+}
+
+enum ProcessingMethod {
+  WASHED
+  NATURAL
+  HONEY
+  SEMI_WASHED
+  PULPED_NATURAL
+  WET_HULLING
+  ANAEROBIC
+  CARBONIC_MACERATION
+  EXPERIMENTAL
+}
+
+enum CertificationType {
+  ORGANIC
+  FAIRTRADE
+  RAINFOREST_ALLIANCE
+  UTZ
+  BIRD_FRIENDLY
+  CAFE_PRACTICES
+  FOUR_C
+  NOP_USDA
+  EU_ORGANIC
+  JAS_ORGANIC
+  COR
+  CODEX
+  NONE_KNOWN
+}
+
+enum BoardRegistrationStatus {
+  REGISTERED
+  UNREGISTERED
+  EXEMPT
+  UNKNOWN
+}
+
+enum ImportRecordStatus {
+  IMPORTED
+  NEEDS_REVIEW
+  DUPLICATE_FLAGGED
+  ERROR
+  ACCEPTED
+  REJECTED
+  MERGED
+}
+
+enum DuplicateMatchType {
+  HIGH_CONFIDENCE_MATCH
+  POSSIBLE_MATCH
+  NO_MATCH
+}
+
+enum OutreachType {
+  EMAIL
+  PHONE_CALL
+  WHATSAPP
+  IN_PERSON_MEETING
+  VIDEO_CALL
+  TRADE_EVENT
+  OTHER
+}
+
+enum OutreachStatus {
+  SCHEDULED
+  COMPLETED
+  NO_RESPONSE
+  REJECTED
+  INTERESTED
+  FOLLOW_UP_REQUIRED
+}
+
+enum LotStatus {
+  DRAFT
+  AVAILABLE
+  RESERVED
+  SAMPLE_REQUESTED
+  SAMPLE_SENT
+  CUPPING
+  SOLD
+  EXHAUSTED
+  ARCHIVED
+}
+
+enum PriceBasis {
+  FOB_ORIGIN
+  CIF_PORT
+  EXW
+  DDP
+  OTHER
+}
+
+// ═══════════════════════════════════════════
+// AUDIT ACTION (unified)
+// ═══════════════════════════════════════════
+
 enum AuditAction {
+  // Mission 4A
   USER_SIGN_UP
   USER_SIGN_IN
   USER_SIGN_OUT
@@ -60,10 +247,41 @@ enum AuditAction {
   ONBOARDING_STEP_COMPLETED
   PASSWORD_RESET_REQUESTED
   PASSWORD_RESET_COMPLETED
+  // Mission 4B
+  GROWER_CREATED
+  GROWER_UPDATED
+  GROWER_STATUS_CHANGED
+  GROWER_MERGED
+  GROWER_ARCHIVED
+  ESTATE_CREATED
+  ESTATE_UPDATED
+  COFFEE_LOT_CREATED
+  COFFEE_LOT_UPDATED
+  COFFEE_LOT_STATUS_CHANGED
+  PROVENANCE_CREATED
+  PROVENANCE_VERIFIED
+  EVIDENCE_CREATED
+  EVIDENCE_VERIFIED
+  EVIDENCE_REJECTED
+  CERTIFICATION_CREATED
+  CERTIFICATION_UPDATED
+  CERTIFICATION_VERIFIED
+  CERTIFICATION_REJECTED
+  OUTREACH_LOGGED
+  OUTREACH_COMPLETED
+  DATA_IMPORTED
+  DATA_RECONCILED
+  DUPLICATE_DETECTED
+  DUPLICATE_MERGED
+  AI_FIELD_GENERATED
+  AI_FIELD_ACCEPTED
+  AI_FIELD_REJECTED
+  GROWER_APPLICATION_SUBMITTED
+  IMPORT_BATCH_CREATED
 }
 
 // ═══════════════════════════════════════════
-// USER
+// USER (extended with 4B relations)
 // ═══════════════════════════════════════════
 
 model User {
@@ -81,17 +299,33 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  memberships   OrganizationMember[]
-  sentInvitations Invitation[]  @relation("Inviter")
-  reviewedOrganizations Organization[] @relation("OrgReviewer")
-  auditEvents   AuditEvent[]
-  onboardingSteps OnboardingStep[]
+  memberships           OrganizationMember[]
+  sentInvitations       Invitation[]            @relation("Inviter")
+  reviewedOrganizations Organization[]          @relation("OrgReviewer")
+  auditEvents           AuditEvent[]
+  onboardingSteps       OnboardingStep[]
+  // Mission 4B reverse relations
+  createdGrowers        Grower[]               @relation("GrowerCreator")
+  updatedGrowers        Grower[]               @relation("GrowerUpdater")
+ verifiedGrowers        Grower[]               @relation("GrowerVerifier")
+ createdProvenance      GrowerProvenance[]     @relation("ProvenanceCreator")
+  verifiedProvenance    GrowerProvenance[]     @relation("ProvenanceVerifier")
+  createdEvidence       EvidenceRecord[]       @relation("EvidenceCreator")
+  verifiedEvidence      EvidenceRecord[]       @relation("EvidenceVerifier")
+  createdCertifications GrowerCertification[]  @relation("CertCreator")
+  verifiedCertifications GrowerCertification[] @relation("CertVerifier")
+  growerNotes           GrowerNote[]
+  outreachLog           GrowerOutreach[]
+  importBatches         ImportBatch[]
+  createdEstates        Estate[]               @relation("EstateCreator")
+  createdLots           CoffeeLot[]            @relation("LotCreator")
+  relationshipOwnedGrowers Grower[]               @relation("GrowerRelationshipOwner")
 
   @@map("users")
 }
 
 // ═══════════════════════════════════════════
-// ORGANIZATION
+// ORGANIZATION (unchanged)
 // ═══════════════════════════════════════════
 
 model Organization {
@@ -128,7 +362,7 @@ model Organization {
 }
 
 // ═══════════════════════════════════════════
-// ORGANIZATION MEMBER
+// ORGANIZATION MEMBER (unchanged)
 // ═══════════════════════════════════════════
 
 model OrganizationMember {
@@ -146,69 +380,62 @@ model OrganizationMember {
 }
 
 // ═══════════════════════════════════════════
-// BUYER PROFILE
+// BUYER PROFILE (unchanged)
 // ═══════════════════════════════════════════
 
 model BuyerProfile {
   id                         String   @id @default(cuid())
   organizationId             String   @unique
   organization               Organization @relation(fields: [organizationId], references: [id])
-
-  // Roaster profile
   roastingInHouse            Boolean?
   roastingCapacityKgMonth    Float?
   annualGreenCoffeeKg        Float?
   currentOrigins             String?
-  mainCoffeeUse              String?  // JSON array
+  mainCoffeeUse              String?
   typicalOrderSize           String?
   preferredMinOrder          String?
   importExperience           String?
-  certificationsRequired     String?  // JSON array
+  certificationsRequired     String?
   roasterNotes               String?
-
-  // Commercial preferences
-  targetPriceRangeCadKg      String?  // JSON: {min, max}
-  preferredSpecies           String?  // JSON array
-  preferredProcessingMethods String?  // JSON array
-  preferredFlavourProfiles   String?  // JSON array
-  preferredOrigins           String?  // JSON array
+  targetPriceRangeCadKg      String?
+  preferredSpecies           String?
+  preferredProcessingMethods String?
+  preferredFlavourProfiles   String?
+  preferredOrigins           String?
   sampleInterest             Boolean  @default(false)
   groupOrderInterest         Boolean  @default(false)
   targetPurchasingTimeline   String?
-
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
-
   @@map("buyer_profiles")
 }
 
 // ═══════════════════════════════════════════
-// ADDRESS
+// ADDRESS (unchanged)
 // ═══════════════════════════════════════════
 
 model Address {
-  id             String   @id @default(cuid())
-  organizationId String   @unique
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  billingStreet  String?
-  billingCity    String?
-  billingProvince String?
+  id               String   @id @default(cuid())
+  organizationId   String   @unique
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  billingStreet    String?
+  billingCity      String?
+  billingProvince  String?
   billingPostalCode String?
-  billingCountry String   @default("Canada")
-  deliveryStreet String?
-  deliveryCity   String?
+  billingCountry   String   @default("Canada")
+  deliveryStreet   String?
+  deliveryCity     String?
   deliveryProvince String?
   deliveryPostalCode String?
-  deliveryCountry String   @default("Canada")
+  deliveryCountry  String   @default("Canada")
   isSameAsRegistered Boolean @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   @@map("addresses")
 }
 
 // ═══════════════════════════════════════════
-// CONSENT RECORD
+// CONSENT RECORD (unchanged)
 // ═══════════════════════════════════════════
 
 model ConsentRecord {
@@ -219,12 +446,11 @@ model ConsentRecord {
   consentedAt    DateTime    @default(now())
   ipAddress      String?
   userAgent      String?
-
   @@map("consent_records")
 }
 
 // ═══════════════════════════════════════════
-// INVITATION
+// INVITATION (unchanged)
 // ═══════════════════════════════════════════
 
 model Invitation {
@@ -240,27 +466,25 @@ model Invitation {
   expiresAt      DateTime
   acceptedAt     DateTime?
   createdAt      DateTime         @default(now())
-
   @@map("invitations")
 }
 
 // ═══════════════════════════════════════════
-// ONBOARDING STEP
+// ONBOARDING STEP (unchanged)
 // ═══════════════════════════════════════════
 
 model OnboardingStep {
   id         String   @id @default(cuid())
   userId     String
   user       User     @relation(fields: [userId], references: [id])
-  step       Int      // 1-5
+  step       Int
   completedAt DateTime @default(now())
-
   @@unique([userId, step])
   @@map("onboarding_steps")
 }
 
 // ═══════════════════════════════════════════
-// AUDIT EVENT
+// AUDIT EVENT (extended with growerId)
 // ═══════════════════════════════════════════
 
 model AuditEvent {
@@ -270,10 +494,491 @@ model AuditEvent {
   actorUser      User?       @relation(fields: [actorUserId], references: [id])
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
-  metadata       String?     // JSON string
+  growerId       String?
+  grower         Grower?    @relation(fields: [growerId], references: [id])
+  metadata       String?
   ipAddress      String?
   userAgent      String?
   createdAt      DateTime    @default(now())
-
   @@map("audit_events")
+}
+
+// ═══════════════════════════════════════════
+// MISSION 4B: GROWER
+// ═══════════════════════════════════════════
+
+model Grower {
+  id                      String                  @id @default(cuid())
+
+  // Identity
+  displayName             String
+  legalName               String?
+  growerType              GrowerType             @default(ESTATE)
+  coffeeBoardRegistration BoardRegistrationStatus @default(UNKNOWN)
+  coffeeBoardId           String?
+  registrationNumber      String?
+  taxId                   String?
+  establishedYear        Int?
+  website                 String?
+
+  // Contact (PII — never exposed to roasters)
+  contactName             String?
+  contactEmail            String?
+  contactPhone            String?
+  contactMethod           String?
+  languages               String?                // JSON array
+
+  // Location
+  country                 String                  @default("India")
+  state                   String?
+  district                String?
+  taluk                   String?
+  village                 String?
+  address                 String?
+  postalCode              String?
+  latitude                Float?
+  longitude               Float?
+
+  // Production
+  totalAcreage            Float?
+  coffeeAcreage           Float?
+  annualProductionKg      Float?
+  annualExportVolumeKg    Float?
+
+  // Coffee
+  primarySpecies          CoffeeSpecies?
+  allSpecies              String?                // JSON array
+  varietals               String?                // JSON array
+  processingMethods       String?                // JSON array
+  harvestMonths           String?                // JSON array
+  altitudeMinMeters       Int?
+  altitudeMaxMeters       Int?
+
+  // Quality
+  typicalCupScore         Float?
+  cuppingExperience       String?
+  laboratoryTesting       Boolean                 @default(false)
+  sampleAvailability      Boolean                 @default(false)
+  traceabilityCapability  Boolean                 @default(false)
+
+  // Commercial
+  typicalLotSizeKg        Float?
+  minLotSizeKg            Float?
+  exportExperience        Boolean                 @default(false)
+  existingExportMarkets   String?                // JSON array
+  preferredCommercialModel String?
+  priceExpectationUsdKg   Float?
+  packagingCapability    String?
+
+  // Infrastructure
+  warehouseCapability     Boolean                 @default(false)
+  processingCapability    Boolean                 @default(false)
+  dryingCapability        Boolean                 @default(false)
+
+  // Sustainability & Story
+  sustainabilityPractices String?                // JSON array
+  growerStory             String?
+  buyerVisibleDescription String?
+  internalNotes           String?
+
+  // Pipeline & Status
+  relationshipStatus      GrowerRelationshipStatus @default(DISCOVERED)
+  verificationStatus      OverallVerificationStatus @default(UNVERIFIED)
+  visibility              GrowerVisibility       @default(INTERNAL_ONLY)
+
+  // Ownership
+  relationshipOwnerUserId String?
+  relationshipOwner       User?                   @relation("GrowerRelationshipOwner", fields: [relationshipOwnerUserId], references: [id])
+
+  // Verification tracking
+  lastVerifiedAt          DateTime?
+  lastVerifiedByUserId    String?
+  lastVerifiedBy          User?                   @relation("GrowerVerifier", fields: [lastVerifiedByUserId], references: [id])
+
+  // Pipeline actions
+  nextAction              String?
+  nextActionDate          DateTime?
+  lastContactDate         DateTime?
+
+  // AI-assisted tracking
+  aiAssistedFields        String?                // JSON array of field names
+  aiConfidenceScore       Float?                 // 0.0–1.0
+
+  // Ops flags
+  opsFlags                String?                // JSON array e.g. ["DUPLICATE_POSSIBLE"]
+
+  // Metadata
+  createdByUserId         String?
+  createdBy               User?                   @relation("GrowerCreator", fields: [createdByUserId], references: [id])
+  updatedByUserId         String?
+  updatedBy               User?                   @relation("GrowerUpdater", fields: [updatedByUserId], references: [id])
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  // Relations
+  provenanceRecords        GrowerProvenance[]
+  certifications           GrowerCertification[]
+  evidenceRecords          EvidenceRecord[]
+  notes                    GrowerNote[]
+  estates                  Estate[]
+  coffeeLots               CoffeeLot[]
+  outreach                 GrowerOutreach[]
+  verificationCategories   GrowerVerificationCategory[]
+  importRecords            ImportRecord[]
+  auditEvents              AuditEvent[]
+
+  @@index([relationshipStatus])
+  @@index([verificationStatus])
+  @@index([visibility])
+  @@index([country])
+  @@index([state])
+  @@index([growerType])
+  @@index([primarySpecies])
+  @@index([coffeeBoardRegistration])
+  @@index([createdAt])
+  @@map("growers")
+}
+
+// ═══════════════════════════════════════════
+// GROWER PROVENANCE (source tracking)
+// ═══════════════════════════════════════════
+
+model GrowerProvenance {
+  id                String          @id @default(cuid())
+  growerId          String
+  grower            Grower          @relation(fields: [growerId], references: [id], onDelete: Cascade)
+
+  fieldName         String          // e.g. "annualProductionKg"
+  fieldValue        String          // Value at time of sourcing (JSON for complex types)
+  previousValue     String?
+
+  sourceType        DataSourceType
+  sourceName        String?         // e.g. "Coffee Board of India 2024 Directory"
+  sourceReference   String?         // URL, doc ID, or reference code
+  sourceUrl         String?
+  sourceDetail      String?
+  sourceDate        DateTime?       // When the source was published
+
+  isVerified        Boolean         @default(false)
+  verifiedByUserId String?
+  verifiedBy        User?           @relation("ProvenanceVerifier", fields: [verifiedByUserId], references: [id])
+  verifiedAt        DateTime?
+  verificationNotes String?
+
+  isAiAssisted      Boolean         @default(false)
+  aiModel           String?
+  aiConfidence      Float?
+
+  createdByUserId   String?
+  createdBy         User?           @relation("ProvenanceCreator", fields: [createdByUserId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([growerId])
+  @@index([sourceType])
+  @@index([isVerified])
+  @@index([isAiAssisted])
+  @@map("grower_provenance")
+}
+
+// ═══════════════════════════════════════════
+// EVIDENCE RECORD
+// ═══════════════════════════════════════════
+
+model EvidenceRecord {
+  id                String             @id @default(cuid())
+  growerId          String
+  grower            Grower             @relation(fields: [growerId], references: [id], onDelete: Cascade)
+
+  claim             String             // e.g. "Produces Arabica", "Organic certified"
+  claimCategory     VerificationCategory
+  evidenceType      String             // e.g. "CERTIFICATE", "PHOTO", "LAB_REPORT", "FIELD_VISIT_REPORT"
+  evidenceSource    String?
+  documentUrl       String?
+  documentName      String?
+
+  status            ClaimStatus        @default(NOT_REVIEWED)
+
+  submittedByUserId String?
+  submittedBy       User?              @relation("EvidenceCreator", fields: [submittedByUserId], references: [id])
+  reviewedByUserId   String?
+  reviewedBy        User?              @relation("EvidenceVerifier", fields: [reviewedByUserId], references: [id])
+  reviewedAt        DateTime?
+  expiryDate        DateTime?
+  reviewerNotes     String?
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([growerId])
+  @@index([claimCategory])
+  @@index([status])
+  @@map("evidence_records")
+}
+
+// ═══════════════════════════════════════════
+// GROWER CERTIFICATION
+// ═══════════════════════════════════════════
+
+model GrowerCertification {
+  id                String           @id @default(cuid())
+  growerId          String
+  grower            Grower           @relation(fields: [growerId], references: [id], onDelete: Cascade)
+
+  certificationType CertificationType
+  certifyingBody    String?
+  certificateNumber String?
+  certificateUrl    String?
+  issueDate         DateTime?
+  expiryDate        DateTime?
+  status            ClaimStatus      @default(NOT_REVIEWED)
+
+  isAiAssisted      Boolean          @default(false)
+  aiConfidence      Float?
+  notes             String?
+
+  verifiedByUserId  String?
+  verifiedBy        User?            @relation("CertVerifier", fields: [verifiedByUserId], references: [id])
+  verifiedAt        DateTime?
+
+  createdByUserId   String?
+  createdBy         User?            @relation("CertCreator", fields: [createdByUserId], references: [id])
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([growerId, certificationType, certificateNumber])
+  @@index([growerId])
+  @@index([certificationType])
+  @@index([status])
+  @@map("grower_certifications")
+}
+
+// ═══════════════════════════════════════════
+// GROWER NOTE (internal only)
+// ═══════════════════════════════════════════
+
+model GrowerNote {
+  id              String   @id @default(cuid())
+  growerId        String
+  grower          Grower   @relation(fields: [growerId], references: [id], onDelete: Cascade)
+  content         String
+  category        String?  // GENERAL, VERIFICATION, QUALITY, COMPLIANCE, RELATIONSHIP
+  isPinned        Boolean  @default(false)
+  createdByUserId String
+  createdBy       User     @relation(fields: [createdByUserId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([growerId])
+  @@index([category])
+  @@map("grower_notes")
+}
+
+// ═══════════════════════════════════════════
+// GROWER VERIFICATION CATEGORY
+// ═══════════════════════════════════════════
+
+model GrowerVerificationCategory {
+  id         String             @id @default(cuid())
+  growerId   String
+  grower     Grower             @relation(fields: [growerId], references: [id], onDelete: Cascade)
+  category   VerificationCategory
+  status     ClaimStatus        @default(NOT_REVIEWED)
+ notes      String?
+  updatedAt  DateTime           @updatedAt
+  @@unique([growerId, category])
+  @@index([growerId])
+  @@map("grower_verification_categories")
+}
+
+// ═══════════════════════════════════════════
+// ESTATE
+// ═══════════════════════════════════════════
+
+model Estate {
+  id                String          @id @default(cuid())
+  growerId          String
+  grower            Grower          @relation(fields: [growerId], references: [id], onDelete: Cascade)
+
+  name              String
+  state             String?
+  district          String?
+  taluk             String?
+  village           String?
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  altitudeMinMeters Int?
+  altitudeMaxMeters Int?
+  acreageHectares   Float?
+  isActive          Boolean         @default(true)
+
+  createdByUserId   String?
+  createdBy         User?           @relation("EstateCreator", fields: [createdByUserId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  coffeeLots        CoffeeLot[]
+
+  @@index([growerId])
+  @@map("estates")
+}
+
+// ═══════════════════════════════════════════
+// COFFEE LOT
+// ═══════════════════════════════════════════
+
+model CoffeeLot {
+  id                   String          @id @default(cuid())
+  growerId             String
+  grower               Grower          @relation(fields: [growerId], references: [id], onDelete: Cascade)
+  estateId             String?
+  estate               Estate?         @relation(fields: [estateId], references: [id])
+
+  // Identity
+  lotCode              String?         // e.g. "HL-2024-CRG-001"
+  cropYear             Int?
+
+  // Coffee
+  species              CoffeeSpecies?
+  variety              String?
+  process              ProcessingMethod?
+  grade                String?
+  altitudeMinMeters    Int?
+  altitudeMaxMeters    Int?
+
+  // Quantity
+  quantityKg           Float?
+  moqKg                Float?
+
+  // Quality
+  moistureContent      Float?
+  waterActivity        Float?
+  cupScore             Float?
+  tastingNotes         String?
+
+  // Harvest
+  harvestStart         DateTime?
+  harvestEnd           DateTime?
+
+  // Commercial
+  indicativePriceUsdKg Float?
+  priceBasis           PriceBasis?
+  priceDate            DateTime?
+  currency             String?         @default("USD")
+  packagingDescription String?
+
+  // Status
+  status               LotStatus       @default(DRAFT)
+  sampleAvailable      Boolean         @default(false)
+  exportReady          Boolean         @default(false)
+  visibility           GrowerVisibility @default(INTERNAL_ONLY)
+
+  // Certifications (JSON array of cert names)
+  certifications       String?
+
+  // Documentation
+  documentationStatus  String?         // e.g. "COMPLETE", "PARTIAL", "PENDING"
+
+  // AI
+  isAiGenerated        Boolean         @default(false)
+  aiAssistedFields     String?         // JSON array
+
+  createdByUserId      String?
+  createdBy            User?           @relation("LotCreator", fields: [createdByUserId], references: [id])
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([growerId])
+  @@index([estateId])
+  @@index([status])
+  @@index([species])
+  @@index([visibility])
+  @@index([cropYear])
+  @@map("coffee_lots")
+}
+
+// ═══════════════════════════════════════════
+// GROWER OUTREACH
+// ═══════════════════════════════════════════
+
+model GrowerOutreach {
+  id              String          @id @default(cuid())
+  growerId        String
+  grower          Grower          @relation(fields: [growerId], references: [id], onDelete: Cascade)
+
+  outreachType    OutreachType
+  status          OutreachStatus  @default(SCHEDULED)
+  subject         String?
+  content         String?
+  scheduledDate   DateTime?
+  completedDate   DateTime?
+  response        String?
+  followUpDate    DateTime?
+
+  createdByUserId String
+  createdBy       User            @relation(fields: [createdByUserId], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([growerId])
+  @@index([outreachType])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("grower_outreach")
+}
+
+// ═══════════════════════════════════════════
+// IMPORT BATCH
+// ═══════════════════════════════════════════
+
+model ImportBatch {
+  id                String             @id @default(cuid())
+  sourceType        DataSourceType
+  sourceName        String?
+  sourceReference   String?
+  fileName          String?
+  totalRows         Int                @default(0)
+  importedRows      Int                @default(0)
+  duplicateRows     Int                @default(0)
+  errorRows         Int                @default(0)
+  status            String             @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+
+  createdByUserId   String?
+  createdBy         User?              @relation(fields: [createdByUserId], references: [id])
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  importRecords     ImportRecord[]
+
+  @@index([sourceType])
+  @@index([status])
+  @@map("import_batches")
+}
+
+// ═══════════════════════════════════════════
+// IMPORT RECORD
+// ═══════════════════════════════════════════
+
+model ImportRecord {
+  id                String             @id @default(cuid())
+  batchId           String
+  batch             ImportBatch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  growerId          String?            // Set after acceptance
+  grower            Grower?            @relation(fields: [growerId], references: [id])
+
+  rowNumber         Int
+  rawData           String             // JSON: the original row data
+  matchedStatus     DuplicateMatchType @default(NO_MATCH)
+  matchedGrowerId   String?
+  status            ImportRecordStatus @default(IMPORTED)
+  errors            String?            // JSON array of validation error messages
+  notes             String?
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([batchId])
+  @@index([growerId])
+  @@index([status])
+  @@map("import_records")
 }
