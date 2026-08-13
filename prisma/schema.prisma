@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  relationMode = "prisma"
+}
+
+// ═══════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════
+
+enum UserRole {
+  BUYER_ADMIN
+  BUYER_MEMBER
+  OPS_ADMIN
+  SUPER_ADMIN
+}
+
+enum OrgStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  NEEDS_INFORMATION
+  REJECTED
+  SUSPENDED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+enum ConsentType {
+  TERMS_ACCEPTANCE
+  PRIVACY_CONSENT
+  MARKETING_CONSENT
+}
+
+enum AuditAction {
+  USER_SIGN_UP
+  USER_SIGN_IN
+  USER_SIGN_OUT
+  ORG_CREATED
+  ORG_UPDATED
+  ORG_SUBMITTED
+  ORG_APPROVED
+  ORG_REJECTED
+  ORG_SUSPENDED
+  ORG_INFO_REQUESTED
+  MEMBER_INVITED
+  MEMBER_ACCEPTED
+  MEMBER_REMOVED
+  MEMBER_ROLE_CHANGED
+  ONBOARDING_STEP_COMPLETED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+}
+
+// ═══════════════════════════════════════════
+// USER
+// ═══════════════════════════════════════════
+
+model User {
+  id            String    @id @default(cuid())
+  supabaseUid   String    @unique
+  email         String    @unique
+  firstName     String
+  lastName      String
+  jobTitle      String?
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean   @default(true)
+  isInternal    Boolean   @default(false)
+  globalRole    UserRole?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  memberships   OrganizationMember[]
+  sentInvitations Invitation[]  @relation("Inviter")
+  reviewedOrganizations Organization[] @relation("OrgReviewer")
+  auditEvents   AuditEvent[]
+  onboardingSteps OnboardingStep[]
+
+  @@map("users")
+}
+
+// ═══════════════════════════════════════════
+// ORGANIZATION
+// ═══════════════════════════════════════════
+
+model Organization {
+  id                String      @id @default(cuid())
+  legalName         String
+  operatingName     String?
+  website           String?
+  businessType      String?
+  province          String?
+  city              String?
+  address           String?
+  postalCode        String?
+  yearEstablished   Int?
+  numberOfLocations Int?
+  status            OrgStatus   @default(DRAFT)
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedByUserId  String?
+  reviewedBy        User?       @relation("OrgReviewer", fields: [reviewedByUserId], references: [id])
+  rejectionReason   String?
+  infoRequestNotes  String?
+  internalNotes     String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  members           OrganizationMember[]
+  buyerProfile      BuyerProfile?
+  orgAddress        Address?
+  invitations       Invitation[]
+  consents          ConsentRecord[]
+  auditEvents       AuditEvent[]
+
+  @@map("organizations")
+}
+
+// ═══════════════════════════════════════════
+// ORGANIZATION MEMBER
+// ═══════════════════════════════════════════
+
+model OrganizationMember {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  role           UserRole  @default(BUYER_MEMBER)
+  isPrimary      Boolean   @default(false)
+  joinedAt       DateTime  @default(now())
+
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
+// ═══════════════════════════════════════════
+// BUYER PROFILE
+// ═══════════════════════════════════════════
+
+model BuyerProfile {
+  id                         String   @id @default(cuid())
+  organizationId             String   @unique
+  organization               Organization @relation(fields: [organizationId], references: [id])
+
+  // Roaster profile
+  roastingInHouse            Boolean?
+  roastingCapacityKgMonth    Float?
+  annualGreenCoffeeKg        Float?
+  currentOrigins             String?
+  mainCoffeeUse              String?  // JSON array
+  typicalOrderSize           String?
+  preferredMinOrder          String?
+  importExperience           String?
+  certificationsRequired     String?  // JSON array
+  roasterNotes               String?
+
+  // Commercial preferences
+  targetPriceRangeCadKg      String?  // JSON: {min, max}
+  preferredSpecies           String?  // JSON array
+  preferredProcessingMethods String?  // JSON array
+  preferredFlavourProfiles   String?  // JSON array
+  preferredOrigins           String?  // JSON array
+  sampleInterest             Boolean  @default(false)
+  groupOrderInterest         Boolean  @default(false)
+  targetPurchasingTimeline   String?
+
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@map("buyer_profiles")
+}
+
+// ═══════════════════════════════════════════
+// ADDRESS
+// ═══════════════════════════════════════════
+
+model Address {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  billingStreet  String?
+  billingCity    String?
+  billingProvince String?
+  billingPostalCode String?
+  billingCountry String   @default("Canada")
+  deliveryStreet String?
+  deliveryCity   String?
+  deliveryProvince String?
+  deliveryPostalCode String?
+  deliveryCountry String   @default("Canada")
+  isSameAsRegistered Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("addresses")
+}
+
+// ═══════════════════════════════════════════
+// CONSENT RECORD
+// ═══════════════════════════════════════════
+
+model ConsentRecord {
+  id             String      @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  consentType    ConsentType
+  consentedAt    DateTime    @default(now())
+  ipAddress      String?
+  userAgent      String?
+
+  @@map("consent_records")
+}
+
+// ═══════════════════════════════════════════
+// INVITATION
+// ═══════════════════════════════════════════
+
+model Invitation {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  invitedEmail   String
+  invitedByUserId String
+  invitedBy      User             @relation("Inviter", fields: [invitedByUserId], references: [id])
+  role           UserRole         @default(BUYER_MEMBER)
+  status         InvitationStatus @default(PENDING)
+  token          String           @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+
+  @@map("invitations")
+}
+
+// ═══════════════════════════════════════════
+// ONBOARDING STEP
+// ═══════════════════════════════════════════
+
+model OnboardingStep {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  step       Int      // 1-5
+  completedAt DateTime @default(now())
+
+  @@unique([userId, step])
+  @@map("onboarding_steps")
+}
+
+// ═══════════════════════════════════════════
+// AUDIT EVENT
+// ═══════════════════════════════════════════
+
+model AuditEvent {
+  id             String      @id @default(cuid())
+  action         AuditAction
+  actorUserId    String?
+  actorUser      User?       @relation(fields: [actorUserId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  metadata       String?     // JSON string
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime    @default(now())
+
+  @@map("audit_events")
+}
